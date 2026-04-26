@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
+import { createClient as createAdminClient } from '@supabase/supabase-js'
 import { z } from 'zod'
 
 const schema = z.object({
-  email: z.string().email(),
+  email: z.email(),
   password: z.string().min(8),
   household_name: z.string().min(1).optional(),
   invite_token: z.string().optional(),
@@ -63,7 +64,19 @@ export async function POST(req: NextRequest) {
   }
 
   const { email, password, household_name, invite_token } = parsed.data
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('Environment variables missing:', {
+      url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+      key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    })
+    return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
+  }
+
   const supabase = await createClient()
+  const admin = createAdminClient(
+    process.env.NEXT_PUBLIC_SUPABASE_URL!,
+    process.env.SUPABASE_SERVICE_ROLE_KEY!
+  )
 
   // ── Invite flow: decode token to get household_id ──────────────────────
   let household_id: string | null = null
@@ -81,38 +94,49 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Create Supabase auth user ──────────────────────────────────────────
+  console.log('Registering user:', email)
   const { data: authData, error: authError } = await supabase.auth.signUp({
     email,
     password,
     options: {
       data: household_id ? { household_id } : {},
+      emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
     },
   })
 
   if (authError || !authData.user) {
+    console.error('Auth error:', authError)
     return NextResponse.json({ error: authError?.message ?? 'Sign up failed' }, { status: 400 })
   }
+  console.log('Auth success, user ID:', authData.user.id)
 
   // ── If this is the first user (not invite), create household + seed ────
   if (!household_id) {
     // Create household
-    const { data: hh, error: hhErr } = await supabase
+    const { data: hh, error: hhErr } = await admin
       .from('households')
       .insert({ name: household_name! })
       .select()
       .single()
 
     if (hhErr || !hh) {
-      return NextResponse.json({ error: 'Failed to create household' }, { status: 500 })
+      console.error('Household creation error:', hhErr)
+      return NextResponse.json({ error: hhErr?.message ?? 'Failed to create household' }, { status: 500 })
     }
     household_id = hh.id
 
     // Update user metadata with household_id
-    await supabase.auth.updateUser({ data: { household_id } })
+    const { error: updateError } = await admin.auth.admin.updateUserById(
+      authData.user.id,
+      { user_metadata: { household_id } }
+    )
+    if (updateError) {
+      console.error('Update user error:', updateError)
+      return NextResponse.json({ error: updateError.message }, { status: 500 })
+    }
 
     // Create 3 default accounts
-    await supabase.from('accounts').insert([
+    await admin.from('accounts').insert([
       { household_id, name: 'BP Checking',      bank: 'banque_populaire', account_type: 'checking',  currency: 'EUR' },
       { household_id, name: 'Revolut Personal', bank: 'revolut',          account_type: 'personal',  currency: 'EUR' },
       { household_id, name: 'Revolut Joint',    bank: 'revolut',          account_type: 'joint',     currency: 'EUR' },
@@ -120,14 +144,14 @@ export async function POST(req: NextRequest) {
 
     // Seed categories (parent → children in two passes)
     for (const cat of DEFAULT_CATEGORIES) {
-      const { data: parent } = await supabase
+      const { data: parent } = await admin
         .from('categories')
         .insert({ household_id, name: cat.name, color: cat.color, sort_order: cat.sort_order })
         .select()
         .single()
 
       if (parent && cat.children && cat.children.length > 0) {
-        await supabase.from('categories').insert(
+        await admin.from('categories').insert(
           cat.children.map((c) => ({
             household_id,
             name: c.name,

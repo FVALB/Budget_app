@@ -72,7 +72,7 @@ Use this when switching between tools (Claude, Gemini, manual coding).
 - ✅ `src/app/(auth)/login/page.tsx` + `LoginForm.tsx`
 - ✅ `src/app/(auth)/register/page.tsx` + `RegisterForm.tsx`
 - ✅ `src/app/(auth)/invite/page.tsx` — joins existing household via invite token
-- ✅ `src/middleware.ts` — redirects unauthenticated to /login
+- ✅ `src/proxy.ts` — redirects unauthenticated to /login
 - ✅ `src/app/api/auth/register/route.ts` — creates household, 3 accounts, seeds categories
 
 **What register does:**
@@ -185,7 +185,7 @@ Row 4: [6-month Spending Trend Chart ──────────] [Recent Tra
 
 ---
 
-## Phase 10 — Deploy to Vercel ⬜
+## Phase 10 — Deploy to Vercel ✅
 
 1. Push code to GitHub: `git init && git add . && git commit -m "Initial build" && git remote add origin <url> && git push`
 2. Go to [vercel.com](https://vercel.com) → Import project from GitHub
