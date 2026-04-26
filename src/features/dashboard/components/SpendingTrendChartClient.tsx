@@ -11,6 +11,7 @@ import {
   Legend,
   ResponsiveContainer,
 } from 'recharts'
+import { formatCents } from '@/lib/currency'
 
 interface MonthPoint {
   label: string
@@ -21,10 +22,9 @@ interface MonthPoint {
 interface Props {
   points: MonthPoint[]
   maxVal: number
-  formatCents: (cents: number) => string
 }
 
-export function SpendingTrendChartClient({ points, formatCents }: Props) {
+export function SpendingTrendChartClient({ points }: Props) {
   const data = points.map((p) => ({
     label: p.label,
     Spending: p.spent_cents / 100,

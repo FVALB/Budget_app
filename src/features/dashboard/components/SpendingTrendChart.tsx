@@ -1,7 +1,6 @@
 import { createClient } from '@/lib/supabase/server'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { monthStart, monthEnd, prevMonth } from '@/lib/date'
-import { formatCents } from '@/lib/currency'
 import { SpendingTrendChartClient } from './SpendingTrendChartClient'
 
 interface Props {
@@ -58,7 +57,7 @@ export async function SpendingTrendChart({ year, month }: Props) {
         <CardTitle className="text-base">6-Month Spending Trend</CardTitle>
       </CardHeader>
       <CardContent>
-        <SpendingTrendChartClient points={points} maxVal={maxVal} formatCents={formatCents} />
+        <SpendingTrendChartClient points={points} maxVal={maxVal} />
       </CardContent>
     </Card>
   )
