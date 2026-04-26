@@ -132,7 +132,11 @@ export default function ImportPage() {
       {/* Account selector */}
       <div className="flex items-center gap-4">
         <div className="w-56">
-          <Select value={accountId} onValueChange={(v) => { if (v) setAccountId(v) }}>
+          <Select
+            value={accountId}
+            onValueChange={(v) => { if (v) setAccountId(v) }}
+            items={accounts.map(a => ({ value: a.id, label: a.name }))}
+          >
             <SelectTrigger>
               <SelectValue placeholder="Select account…" />
             </SelectTrigger>

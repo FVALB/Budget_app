@@ -70,7 +70,11 @@ export function TransactionsClient({ initialTransactions, accounts, categories }
           onChange={(e) => setSearch(e.target.value)}
           className="h-8 w-52 text-sm"
         />
-        <Select value={filterAccount} onValueChange={(v) => { if (v) setFilterAccount(v) }}>
+        <Select
+          value={filterAccount}
+          onValueChange={(v) => { if (v) setFilterAccount(v) }}
+          items={[{ value: 'all', label: 'All accounts' }, ...accounts.map(a => ({ value: a.id, label: a.name }))]}
+        >
           <SelectTrigger className="h-8 w-44 text-sm">
             <SelectValue placeholder="All accounts" />
           </SelectTrigger>
@@ -81,7 +85,15 @@ export function TransactionsClient({ initialTransactions, accounts, categories }
             ))}
           </SelectContent>
         </Select>
-        <Select value={filterCategory} onValueChange={(v) => { if (v) setFilterCategory(v) }}>
+        <Select
+          value={filterCategory}
+          onValueChange={(v) => { if (v) setFilterCategory(v) }}
+          items={[
+            { value: 'all', label: 'All categories' },
+            { value: 'uncategorized', label: 'Uncategorized' },
+            ...categories.filter(c => !c.parent_id).map(c => ({ value: c.id, label: c.name })),
+          ]}
+        >
           <SelectTrigger className="h-8 w-44 text-sm">
             <SelectValue placeholder="All categories" />
           </SelectTrigger>
@@ -138,6 +150,10 @@ export function TransactionsClient({ initialTransactions, accounts, categories }
                       <Select
                         value={tx.category_id ?? ''}
                         onValueChange={(v) => assignCategory(tx.id, v || null)}
+                        items={[
+                          { value: '', label: '— None —' },
+                          ...categories.filter(c => !c.parent_id).map(c => ({ value: c.id, label: c.name })),
+                        ]}
                       >
                         <SelectTrigger className="h-6 w-36 text-xs">
                           <SelectValue placeholder="Pick category…" />
