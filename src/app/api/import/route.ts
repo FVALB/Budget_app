@@ -1,3 +1,4 @@
+import { createRequire } from 'node:module'
 import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { parseBanquePopulairePDF } from '@/features/import/parsers/bp-parser'
@@ -9,6 +10,13 @@ import { getImportHashes } from '@/server/db/transactions'
 import { getAccount } from '@/server/db/accounts'
 
 async function extractPDFText(buffer: Buffer): Promise<string> {
+  // pdfjs-dist v5 references DOMMatrix as a bare global at module evaluation time,
+  // but Vercel's Node.js runtime doesn't expose it. Polyfill it before the import.
+  if (typeof globalThis.DOMMatrix === 'undefined') {
+    const req = createRequire(import.meta.url)
+    const geo = req('@napi-rs/canvas/geometry') as { DOMMatrix: unknown; DOMPoint: unknown; DOMRect: unknown }
+    Object.assign(globalThis, { DOMMatrix: geo.DOMMatrix, DOMPoint: geo.DOMPoint, DOMRect: geo.DOMRect })
+  }
   const { PDFParse } = await import('pdf-parse')
   const parser = new PDFParse({ data: new Uint8Array(buffer) })
   const result = await parser.getText()
