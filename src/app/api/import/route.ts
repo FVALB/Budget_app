@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     text = await extractPDFText(buffer)
   } catch (err) {
     logImportError(file.name, err)
-    return NextResponse.json({ error: 'Failed to read PDF. Make sure the file is not password-protected.' }, { status: 422 })
+    const detail = err instanceof Error ? err.message : String(err)
+    return NextResponse.json({ error: `Failed to read PDF: ${detail}` }, { status: 422 })
   }
 
   const parseResult =
