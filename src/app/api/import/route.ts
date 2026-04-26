@@ -8,14 +8,12 @@ import { logImportDuplicateFile, logImportError } from '@/features/import/import
 import { getImportHashes } from '@/server/db/transactions'
 import { getAccount } from '@/server/db/accounts'
 
-// Dynamically import pdf-parse (CommonJS module) to avoid Next.js bundling issues
 async function extractPDFText(buffer: Buffer): Promise<string> {
-  // pdf-parse is a CJS module; .default may not be typed but exists at runtime
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const mod = await import('pdf-parse') as any
-  const pdfParse: (buf: Buffer) => Promise<{ text: string }> = mod.default ?? mod
-  const data = await pdfParse(buffer)
-  return data.text
+  const { PDFParse } = await import('pdf-parse')
+  const parser = new PDFParse({ data: new Uint8Array(buffer) })
+  const result = await parser.getText()
+  await parser.destroy()
+  return result.text
 }
 
 export async function POST(req: NextRequest) {
